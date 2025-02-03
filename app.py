@@ -145,7 +145,15 @@ if __name__=="__main__":
         org_frame = col1.empty()
         ann_frame = col2.empty()
         #process_video(video_path=input_file_path, selected_exercise=selected_exercise)
-        process_video_sequenced(video_path=input_file_path, selected_exercise=selected_exercise)
+        #process_video_sequenced(video_path=input_file_path, selected_exercise=selected_exercise)
+        original_frames, annotated_frames, fps = get_annotated_frames(input_file_path, selected_exercise)
+        stop_button = st.button("Stop Demo")  
+        for i in range(len(annotated_frames)-1):
+            org_frame.image(original_frames[i], channels="BGR")
+            ann_frame.image(annotated_frames[i], channels="BGR")
+            time.sleep(1/fps)
+            if stop_button:
+                st.stop()  
     
     
         
