@@ -2,6 +2,7 @@ import streamlit as st
 import cv2
 import tempfile
 import cv2
+import time
 from pose_estimation.estimation import PoseEstimator
 from exercises.squat import Squat
 from exercises.hammer_curl import HammerCurl
@@ -54,9 +55,49 @@ def get_annotated_frame(frame, selected_exercise):
                                 cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255,), (118, 29, 14, 0.79),1 )
     return frame
 
+@st.cache_data
+def get_annotated_frames(video_path, selected_exercise):
+    cap = cv2.VideoCapture(video_path)  
+    if not cap.isOpened():
+        st.error("Could not open webcam.")
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    progress_text = "Running model on video"
+    progress_bar = st.progress(0, text=progress_text)
+
+    original_frames=[]
+    annotated_frames=[]
+
+    count=0
+    while count < n_frames:
+        success, frame = cap.read()
+        if not success: break
+        org_frame = frame.copy()
+        annotated_frame = get_annotated_frame(frame, selected_exercise)
+        original_frames.append(org_frame)
+        annotated_frames.append(annotated_frame) 
+        percent_complete = int(100*((count+1)/n_frames))
+        progress_bar.progress(percent_complete, text=f"{progress_text} ({percent_complete}%)")
+        count+=1
+    progress_bar.empty()
+    cap.release()  
+    cv2.destroyAllWindows()
+    return original_frames, annotated_frames, fps
+
 @st.cache_resource
 def load_estimator():
     return PoseEstimator()
+
+def process_video_sequenced(video_path, selected_exercise):
+    original_frames, annotated_frames, fps = get_annotated_frames(video_path, selected_exercise)
+    stop_button = st.button("Stop Demo")  
+    for i in range(len(annotated_frames)-1):
+        org_frame.image(original_frames[i], channels="BGR")
+        ann_frame.image(annotated_frames[i], channels="BGR")
+        time.sleep(1/fps)
+        if stop_button:
+            st.stop()  
 
 def process_video(video_path, selected_exercise):
     cap = cv2.VideoCapture(video_path)  
@@ -103,7 +144,8 @@ if __name__=="__main__":
         col1, col2 = st.columns(2)
         org_frame = col1.empty()
         ann_frame = col2.empty()
-        process_video(video_path=input_file_path, selected_exercise=selected_exercise)
+        #process_video(video_path=input_file_path, selected_exercise=selected_exercise)
+        process_video_sequenced(video_path=input_file_path, selected_exercise=selected_exercise)
     
     
         
