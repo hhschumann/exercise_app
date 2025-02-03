@@ -63,9 +63,6 @@ def get_annotated_frames(video_path, selected_exercise):
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    progress_text = "Running model on video"
-    progress_bar = st.progress(0, text=progress_text)
-
     original_frames=[]
     annotated_frames=[]
 
@@ -78,10 +75,8 @@ def get_annotated_frames(video_path, selected_exercise):
         original_frames.append(org_frame)
         annotated_frames.append(annotated_frame) 
         percent_complete = int(100*((count+1)/n_frames))
-        progress_bar.progress(percent_complete, text=f"{progress_text} ({percent_complete}%)")
         count+=1
-    progress_bar.empty()
-    # cap.release()  
+    cap.release()  
     # cv2.destroyAllWindows()
     return original_frames, annotated_frames, fps
 
@@ -140,7 +135,7 @@ if __name__=="__main__":
             temp_file.write(input_file.read())
             input_file_path = temp_file.name
 
-    if st.button('Start Demo'):
+    if st.button('Run Model'):
         col1, col2 = st.columns(2)
         org_frame = col1.empty()
         ann_frame = col2.empty()
