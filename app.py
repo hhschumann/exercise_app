@@ -81,8 +81,8 @@ def get_annotated_frames(video_path, selected_exercise):
         progress_bar.progress(percent_complete, text=f"{progress_text} ({percent_complete}%)")
         count+=1
     progress_bar.empty()
-    cap.release()  
-    cv2.destroyAllWindows()
+    # cap.release()  
+    # cv2.destroyAllWindows()
     return original_frames, annotated_frames, fps
 
 @st.cache_resource
@@ -147,13 +147,13 @@ if __name__=="__main__":
         #process_video(video_path=input_file_path, selected_exercise=selected_exercise)
         #process_video_sequenced(video_path=input_file_path, selected_exercise=selected_exercise)
         original_frames, annotated_frames, fps = get_annotated_frames(input_file_path, selected_exercise)
-        stop_button = st.button("Stop Demo")  
+        # stop_button = st.button("Stop Demo")  
         for i in range(len(annotated_frames)-1):
             org_frame.image(original_frames[i], channels="BGR")
             ann_frame.image(annotated_frames[i], channels="BGR")
             time.sleep(1/fps)
-            if stop_button:
-                st.stop()  
+            # if stop_button:
+            #     st.stop()  
     
     
         
