@@ -179,14 +179,20 @@ if __name__=="__main__":
         cap.release()
         cv2.destroyAllWindows()
 
-    if st.button('Run Model'):
-        col1, col2 = st.columns(2)
-        org_frame = col1.empty()
-        ann_frame = col2.empty()
+    import threading
 
-        for i in range(0, len(st.session_state['annotated_frames']), 4):
-            org_frame.image(st.session_state['original_frames'][i], channels="BGR")
-            ann_frame.image(st.session_state['annotated_frames'][i], channels="BGR")
+    def run_video_playback():
+        col1, col2 = st.columns(2)
+        org_frame_container = col1.empty()
+        ann_frame_container = col2.empty()
+
+        for i in range(len(st.session_state['annotated_frames'])):
+            org_frame_container.image(st.session_state['original_frames'][i], channels="BGR")
+            ann_frame_container.image(st.session_state['annotated_frames'][i], channels="BGR")
             time.sleep(1 / st.session_state['fps'])
+
+    if st.button('Run Model'):
+        playback_thread = threading.Thread(target=run_video_playback)
+        playback_thread.start()
 
 
