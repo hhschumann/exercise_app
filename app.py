@@ -76,7 +76,7 @@ def get_annotated_frames(video_path, selected_exercise):
         annotated_frames.append(annotated_frame) 
         percent_complete = int(100*((count+1)/n_frames))
         count+=1
-    cap.release()  
+    #cap.release()  
     # cv2.destroyAllWindows()
     return original_frames, annotated_frames, fps
 
