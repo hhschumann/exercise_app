@@ -10,6 +10,53 @@ from feedback.layout import layout_indicators
 from feedback.information import get_exercise_info
 from utils.draw_text_with_background import draw_text_with_background
 
+@st.cache_resource
+def get_exercise(selected_exercise):
+    if selected_exercise == "hammer_curl":
+        return HammerCurl()
+    elif selected_exercise == "squat":
+        return Squat()
+    elif selected_exercise == "push_up":
+        return PushUp()
+    else:
+        print("Invalid exercise type.")
+        return
+
+
+@st.cache_data
+def get_annotated_frame(frame, selected_exercise):
+    pose_estimator = load_estimator()
+    results = pose_estimator.estimate_pose(frame, selected_exercise)
+    exercise_info = get_exercise_info(selected_exercise)
+
+    exercise = get_exercise(selected_exercise)
+
+    if results.pose_landmarks:
+        if selected_exercise == "squat":
+            counter, angle, stage = exercise.track_squat(results.pose_landmarks.landmark, frame)
+            layout_indicators(frame, selected_exercise, (counter, angle, stage))
+        elif selected_exercise == "hammer_curl":
+            (counter_right, angle_right, counter_left, angle_left,
+                warning_message_right, warning_message_left, progress_right, progress_left, stage_right, stage_left) = exercise.track_hammer_curl(
+                results.pose_landmarks.landmark, frame)
+            layout_indicators(frame, selected_exercise,
+                                (counter_right, angle_right, counter_left, angle_left,
+                                warning_message_right, warning_message_left, progress_right, progress_left, stage_right, stage_left))
+        elif selected_exercise == "push_up":
+            counter, angle, stage = exercise.track_push_up(results.pose_landmarks.landmark, frame)
+            layout_indicators(frame, selected_exercise, (counter, angle, stage))
+
+    draw_text_with_background(frame, f"Exercise: {exercise_info.get('name', 'N/A')}", (40, 50),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255,), (118, 29, 14, 0.79), 1)
+    draw_text_with_background(frame, f"Reps: {exercise_info.get('reps', 0)}", (40, 80),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255,), (118, 29, 14, 0.79), 1)
+    draw_text_with_background(frame, f"Sets: {exercise_info.get('sets', 0)}", (40, 110),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255,), (118, 29, 14, 0.79),1 )
+    return frame
+
+@st.cache_resource
+def load_estimator():
+    return PoseEstimator()
 
 def process_video(video_path, selected_exercise):
     cap = cv2.VideoCapture(video_path)  
@@ -17,25 +64,10 @@ def process_video(video_path, selected_exercise):
         st.error("Could not open webcam.")
 
     stop_button = st.button("Stop Demo")  
-    count = 0
 
-    pose_estimator = PoseEstimator()
-
-    if selected_exercise == "hammer_curl":
-        exercise = HammerCurl()
-    elif selected_exercise == "squat":
-        exercise = Squat()
-    elif selected_exercise == "push_up":
-        exercise = PushUp()
-    else:
-        print("Invalid exercise type.")
-        return
-
-    exercise_info = get_exercise_info(selected_exercise)
-
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # fps = cap.get(cv2.CAP_PROP_FPS)
+    # frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    # frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -43,32 +75,10 @@ def process_video(video_path, selected_exercise):
             break
 
         unannotated_frame = frame.copy()
-
-        results = pose_estimator.estimate_pose(frame, selected_exercise)
-        if results.pose_landmarks:
-            if selected_exercise == "squat":
-                counter, angle, stage = exercise.track_squat(results.pose_landmarks.landmark, frame)
-                layout_indicators(frame, selected_exercise, (counter, angle, stage))
-            elif selected_exercise == "hammer_curl":
-                (counter_right, angle_right, counter_left, angle_left,
-                 warning_message_right, warning_message_left, progress_right, progress_left, stage_right, stage_left) = exercise.track_hammer_curl(
-                    results.pose_landmarks.landmark, frame)
-                layout_indicators(frame, selected_exercise,
-                                  (counter_right, angle_right, counter_left, angle_left,
-                                   warning_message_right, warning_message_left, progress_right, progress_left, stage_right, stage_left))
-            elif selected_exercise == "push_up":
-                counter, angle, stage = exercise.track_push_up(results.pose_landmarks.landmark, frame)
-                layout_indicators(frame, selected_exercise, (counter, angle, stage))
-
-        draw_text_with_background(frame, f"Exercise: {exercise_info.get('name', 'N/A')}", (40, 50),
-                                  cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255,), (118, 29, 14, 0.79), 1)
-        draw_text_with_background(frame, f"Reps: {exercise_info.get('reps', 0)}", (40, 80),
-                                  cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255,), (118, 29, 14, 0.79), 1)
-        draw_text_with_background(frame, f"Sets: {exercise_info.get('sets', 0)}", (40, 110),
-                                  cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 255, 255,), (118, 29, 14, 0.79),1 )
+        annotated_frame = get_annotated_frame(frame, selected_exercise)
 
         org_frame.image(unannotated_frame, channels="BGR")
-        ann_frame.image(frame, channels="BGR")
+        ann_frame.image(annotated_frame, channels="BGR")
 
         if stop_button:
             cap.release()  
