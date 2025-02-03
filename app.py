@@ -135,24 +135,25 @@ if __name__=="__main__":
             temp_file.write(input_file.read())
             input_file_path = temp_file.name
 
-    if st.button('Run Model'):
-        col1, col2 = st.columns(2)
-        org_frame = col1.empty()
-        ann_frame = col2.empty()
-        #process_video(video_path=input_file_path, selected_exercise=selected_exercise)
-        #process_video_sequenced(video_path=input_file_path, selected_exercise=selected_exercise)
-        #original_frames, annotated_frames, fps = get_annotated_frames(input_file_path, selected_exercise)
+    if 'original_frames' not in st.session_state:
+        st.session_state['original_frames'] = []
+    if 'annotated_frames' not in st.session_state:
+        st.session_state['annotated_frames'] = []
+    if 'fps' not in st.session_state:
+        st.session_state['fps'] = 30  # Default value
 
-        cap = cv2.VideoCapture(input_file_path)  
+    if st.button('Process Video'):
+        cap = cv2.VideoCapture(input_file_path)
         if not cap.isOpened():
             st.error("Could not open webcam.")
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+        st.session_state['fps'] = int(cap.get(cv2.CAP_PROP_FPS))
         n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        original_frames=[]
-        annotated_frames=[]
+        st.session_state['original_frames'] = []
+        st.session_state['annotated_frames'] = []
 
-        count=0
+        count = 0
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -161,21 +162,24 @@ if __name__=="__main__":
             unannotated_frame = frame.copy()
             annotated_frame = get_annotated_frame(frame, selected_exercise)
 
-            original_frames.append(unannotated_frame)
-            annotated_frames.append(annotated_frame)
-            count+=1
-            if count >= n_frames-1:
-                cap.release()  
-                cv2.destroyAllWindows()
-        #cap.release()  
-        # cv2.destroyAllWindows()
-        # stop_button = st.button("Stop Demo")  
-        for i in range(len(annotated_frames)-1):
-            org_frame.image(original_frames[i], channels="BGR")
-            ann_frame.image(annotated_frames[i], channels="BGR")
-            time.sleep(1/fps)
-            # if stop_button:
-            #     st.stop()  
-    
-    
-        
+            st.session_state['original_frames'].append(unannotated_frame)
+            st.session_state['annotated_frames'].append(annotated_frame)
+
+            count += 1
+            if count >= n_frames - 1:
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
+
+    if st.button('Run Model'):
+        col1, col2 = st.columns(2)
+        org_frame = col1.empty()
+        ann_frame = col2.empty()
+
+        for i in range(len(st.session_state['annotated_frames'])):
+            org_frame.image(st.session_state['original_frames'][i], channels="BGR")
+            ann_frame.image(st.session_state['annotated_frames'][i], channels="BGR")
+            time.sleep(0.5 / st.session_state['fps'])
+
+
