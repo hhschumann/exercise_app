@@ -142,12 +142,17 @@ if __name__=="__main__":
     if 'fps' not in st.session_state:
         st.session_state['fps'] = 30  # Default value
 
+    def resize_frame(frame, width=640):
+        height = int(frame.shape[0] * (width / frame.shape[1]))
+        return cv2.resize(frame, (width, height))
+
     if st.button('Process Video'):
         cap = cv2.VideoCapture(input_file_path)
         if not cap.isOpened():
-            st.error("Could not open webcam.")
+            st.error("Could not open video file.")
+            st.stop()
 
-        st.session_state['fps'] = int(cap.get(cv2.CAP_PROP_FPS))
+        st.session_state['fps'] = int(cap.get(cv2.CAP_PROP_FPS)) // 2  # Reduce FPS
         n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         st.session_state['original_frames'] = []
@@ -158,6 +163,8 @@ if __name__=="__main__":
             ret, frame = cap.read()
             if not ret:
                 break
+
+            frame = resize_frame(frame)  # Resize for better performance
 
             unannotated_frame = frame.copy()
             annotated_frame = get_annotated_frame(frame, selected_exercise)
@@ -177,9 +184,9 @@ if __name__=="__main__":
         org_frame = col1.empty()
         ann_frame = col2.empty()
 
-        for i in range(len(st.session_state['annotated_frames'])):
+        for i in range(0, len(st.session_state['annotated_frames']), 4):
             org_frame.image(st.session_state['original_frames'][i], channels="BGR")
             ann_frame.image(st.session_state['annotated_frames'][i], channels="BGR")
-            time.sleep(0.5 / st.session_state['fps'])
+            time.sleep(1 / st.session_state['fps'])
 
 
